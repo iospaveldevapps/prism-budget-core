@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  rust:
+    name: Rust (solver)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy --all-targets --features cli -- -D warnings
+      - name: Tests
+        run: cargo test
+
+  swift:
+    name: Swift (FFI boundary)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      # Uses the committed xcframework — consumers of the package never need
+      # a Rust toolchain, and CI proves that invariant holds.
+      - name: Swift tests
+        run: swift test
+
+  reproducibility:
+    name: Bindings are up to date
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios, aarch64-apple-ios-sim, aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+      - name: Rebuild xcframework + bindings
+        run: scripts/build-xcframework.sh
+      - name: Verify committed Swift bindings match the crate
+        run: git diff --exit-code Sources/BudgetCore/budget_core.swift

@@ -1,0 +1,31 @@
+[package]
+name = "budget_core"
+version = "0.1.0"
+edition = "2021"
+description = "Cross-platform budgeting core: envelope auto-allocation solver exposed to mobile hosts via UniFFI"
+license = "LicenseRef-Proprietary"
+publish = false
+
+[lib]
+crate-type = ["staticlib", "lib"]
+name = "budget_core"
+
+[[bin]]
+# `uniffi-bindgen` CLI entry point used by scripts/build-xcframework.sh.
+# Gated behind the `cli` feature so clap & friends never end up in the
+# release static library shipped to the app.
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+required-features = ["cli"]
+
+[features]
+cli = ["uniffi/cli"]
+
+[dependencies]
+uniffi = "0.31"
+good_lp = { version = "1", default-features = false, features = ["microlp"] }
+thiserror = "2"
+
+[profile.release]
+lto = true
+strip = "debuginfo"
